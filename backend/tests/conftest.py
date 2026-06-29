@@ -11,7 +11,7 @@ os.environ.setdefault(
 import pytest
 from fastapi.testclient import TestClient
 
-from app.db.database import Base, engine, SessionLocal
+from app.db.database import Base, engine
 from app import models  # noqa: F401  (registers all models)
 from main import app
 
@@ -25,21 +25,19 @@ def _create_schema():
 
 @pytest.fixture
 def client():
+    """Unauthenticated client (for public endpoints)."""
     return TestClient(app)
 
 
 @pytest.fixture
-def user_id():
-    """Insert a fresh user and return its id (unique email per test)."""
-    db = SessionLocal()
-    try:
-        user = models.User(
-            email=f"test-{uuid.uuid4()}@example.com",
-            password_hash="not-a-real-hash",
-        )
-        db.add(user)
-        db.commit()
-        db.refresh(user)
-        return str(user.id)
-    finally:
-        db.close()
+def auth_client():
+    """Client authenticated as a freshly-registered user (Bearer token set)."""
+    c = TestClient(app)
+    email = f"test-{uuid.uuid4().hex[:10]}@example.com"
+    password = "Sup3rSecret!"
+    reg = c.post("/api/register", json={"email": email, "password": password})
+    assert reg.status_code == 201, reg.text
+    tok = c.post("/api/token", data={"username": email, "password": password})
+    assert tok.status_code == 200, tok.text
+    c.headers.update({"Authorization": f"Bearer {tok.json()['access_token']}"})
+    return c

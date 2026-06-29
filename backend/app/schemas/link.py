@@ -17,7 +17,6 @@ _SLUG_PATTERN = re.compile(r"^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$")
 class LinkCreate(BaseModel):
     # HttpUrl makes Pydantic reject anything that isn't a valid URL.
     original_url: HttpUrl
-    user_id: UUID
     # Optional custom slug. Sanitized and validated below.
     custom_slug: str | None = None
 

@@ -34,6 +34,19 @@ resource "aws_ecr_repository" "backend" {
   tags         = { Name = "${var.project}-backend" }
 }
 
+# ---- JWT signing secret (generated, stored encrypted in SSM) ----
+resource "random_password" "jwt" {
+  length  = 48
+  special = false
+}
+
+resource "aws_ssm_parameter" "jwt_secret" {
+  name  = "/${var.project}/jwt_secret"
+  type  = "SecureString"
+  value = random_password.jwt.result
+  tags  = { Name = "${var.project}-jwt-secret" }
+}
+
 # ---- Compute: EC2 instance running the backend container ----
 module "ec2" {
   source                = "./modules/ec2"
@@ -45,6 +58,7 @@ module "ec2" {
   instance_profile_name = module.iam.instance_profile_name
   image_uri             = "${aws_ecr_repository.backend.repository_url}:latest"
   ssm_database_url_path = module.rds.ssm_database_url_path
+  jwt_ssm_path          = aws_ssm_parameter.jwt_secret.name
 }
 
 # ---- Load balancer: public entry point forwarding to the EC2 backend ----

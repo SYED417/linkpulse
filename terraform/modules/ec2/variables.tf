@@ -35,3 +35,8 @@ variable "ssm_database_url_path" {
   description = "SSM parameter name holding the DATABASE_URL"
   type        = string
 }
+
+variable "jwt_ssm_path" {
+  description = "SSM parameter name holding the JWT signing secret"
+  type        = string
+}

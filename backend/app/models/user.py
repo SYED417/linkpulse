@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Text, DateTime, text
+from sqlalchemy import Column, String, Text, DateTime, Boolean, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -15,7 +15,9 @@ class User(Base):
         server_default=text("gen_random_uuid()"),
     )
     email = Column(String(255), unique=True, nullable=False)
+    # Stores the bcrypt hash of the password (never the plaintext).
     password_hash = Column(Text, nullable=False)
+    is_active = Column(Boolean, nullable=False, server_default=text("true"))
     created_at = Column(
         DateTime(timezone=True),
         nullable=False,

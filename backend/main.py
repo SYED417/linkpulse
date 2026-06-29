@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 # Importing the models package registers all ORM models with SQLAlchemy.
 from app import models  # noqa: F401
-from app.routes import links, redirect, analytics, users
+from app.routes import links, redirect, analytics, auth
 
 # Create the FastAPI application instance.
 app = FastAPI(title="LinkPulse API")
@@ -20,11 +20,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Auth: /api/register and /api/token.
+app.include_router(auth.router)
+
 # Attach the links router (adds POST /api/links and GET /api/links).
 app.include_router(links.router)
-
-# Attach the users router (adds GET /api/users).
-app.include_router(users.router)
 
 # Attach the analytics router (adds GET /api/analytics/{short_code}).
 app.include_router(analytics.router)

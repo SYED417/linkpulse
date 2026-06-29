@@ -1,21 +1,16 @@
 import { useState } from 'react'
 import { createLink, SHORT_URL_BASE } from '../api'
 
-// Form to create a new short link. Calls onCreated() so the parent
-// can refresh the table after a successful create.
-export default function CreateLinkForm({ user, onCreated }) {
+// Form to create a new short link. The owner is derived from the JWT on the
+// backend, so we no longer send a user id.
+export default function CreateLinkForm({ onCreated }) {
   const [url, setUrl] = useState('')
   const [slug, setSlug] = useState('')
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
 
   async function handleSubmit(e) {
-    e.preventDefault() // stop the browser from reloading the page
-    if (!user) {
-      setMsg('No user loaded yet.')
-      return
-    }
-    // Normalize: if the user didn't type a scheme, assume https://
+    e.preventDefault()
     let normalized = url.trim()
     if (!normalized) {
       setMsg('Please enter a URL.')
@@ -27,7 +22,7 @@ export default function CreateLinkForm({ user, onCreated }) {
     setBusy(true)
     setMsg('')
     try {
-      const link = await createLink(normalized, user.id, slug)
+      const link = await createLink(normalized, slug)
       const code = link.custom_slug || link.short_code
       setMsg(`Created: ${SHORT_URL_BASE}/${code}`)
       setUrl('')
@@ -59,7 +54,7 @@ export default function CreateLinkForm({ user, onCreated }) {
             value={slug}
             onChange={(e) => setSlug(e.target.value)}
           />
-          <button type="submit" disabled={busy || !user}>
+          <button type="submit" disabled={busy}>
             {busy ? 'Creating…' : 'Shorten'}
           </button>
         </div>

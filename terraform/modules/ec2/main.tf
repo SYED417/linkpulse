@@ -16,6 +16,7 @@ resource "aws_instance" "this" {
     region                = var.region
     image_uri             = var.image_uri
     ssm_database_url_path = var.ssm_database_url_path
+    jwt_ssm_path          = var.jwt_ssm_path
   })
 
   # Replace the instance if the boot script changes.
