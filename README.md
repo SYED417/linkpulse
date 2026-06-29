@@ -15,7 +15,7 @@ A cloud-native URL shortener and click-analytics platform — built with FastAPI
 
 | Layer | Technology |
 |-------|------------|
-| Frontend | React + Vite (SPA) |
+| Frontend | React + Vite (SPA), React Router, Recharts |
 | Backend | FastAPI (Python 3.11), SQLAlchemy |
 | Database | PostgreSQL 15 (Amazon RDS) |
 | Containerization | Docker, docker-compose (local) |
@@ -34,8 +34,14 @@ A cloud-native URL shortener and click-analytics platform — built with FastAPI
 
 1. A user submits a long URL through the React frontend.
 2. The FastAPI backend generates a unique short code and stores the link in PostgreSQL.
-3. Visiting `/{short_code}` returns a 307 redirect to the original URL and records a click (IP, referrer, timestamp).
-4. The analytics endpoint aggregates clicks per link: totals, today, top referrers, and a 7-day trend.
+3. Visiting `/{short_code}` returns a 307 redirect to the original URL and records a click — capturing IP, referrer, **device type** (from the User-Agent) and **country** (best-effort GeoIP from the real client IP).
+4. The analytics endpoint aggregates clicks per link: totals, today, top referrers, a 7-day trend, and breakdowns by device and country.
+
+### Frontend pages
+A React Router single-page app with three pages:
+- **Create** — form to shorten a URL (scheme optional; `https://` is added automatically).
+- **My Links** — table of all links, each linking out to its short URL and to its analytics.
+- **Analytics** — charts (Recharts): clicks-over-time line chart, device pie chart, country bar chart, plus top referrers.
 
 ### API routes
 | Method | Route | Purpose |
@@ -180,7 +186,7 @@ Coverage includes the health check, link creation (including 404 for unknown use
 - Migrate compute from EC2 to **ECS Fargate** (no servers to patch, autoscaling).
 - **HTTPS on a custom domain** via ACM + Route 53.
 - **Authentication** (currently the API trusts a user id) — JWT or Cognito.
-- Enrich analytics: **GeoIP country** and **User-Agent device** parsing (columns already exist).
+- Enrich analytics further: swap the best-effort GeoIP API for a local **MaxMind** database or the `CloudFront-Viewer-Country` header (device + country capture is already implemented).
 - **Remote Terraform state** (S3 + DynamoDB lock) and **GitHub OIDC** instead of long-lived AWS keys.
 - Read the real client IP from `X-Forwarded-For` behind the ALB.
 
