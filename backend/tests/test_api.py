@@ -60,20 +60,21 @@ def test_analytics_unknown_code_returns_404(client):
 
 
 def test_create_link_with_custom_slug(client, user_id):
+    suffix = uuid.uuid4().hex[:8]
     res = client.post(
         "/api/links",
         json={
             "original_url": "https://example.com",
             "user_id": user_id,
-            "custom_slug": "My-Cool-Link",  # mixed case -> sanitized to lowercase
+            "custom_slug": f"My-Cool-{suffix}",  # mixed case -> sanitized lowercase
         },
     )
     assert res.status_code == 201
-    assert res.json()["custom_slug"] == "my-cool-link"
+    assert res.json()["custom_slug"] == f"my-cool-{suffix}"
 
 
 def test_duplicate_custom_slug_returns_409(client, user_id):
-    slug = "unique-demo-slug"
+    slug = "dup-" + uuid.uuid4().hex[:8]
     first = client.post(
         "/api/links",
         json={"original_url": "https://example.com", "user_id": user_id, "custom_slug": slug},
@@ -96,7 +97,7 @@ def test_invalid_custom_slug_returns_422(client, user_id):
 
 
 def test_redirect_works_via_custom_slug(client, user_id):
-    slug = "go-home-page"
+    slug = "go-" + uuid.uuid4().hex[:8]
     client.post(
         "/api/links",
         json={"original_url": "https://example.com/home", "user_id": user_id, "custom_slug": slug},
@@ -104,3 +105,44 @@ def test_redirect_works_via_custom_slug(client, user_id):
     redirect = client.get(f"/{slug}", follow_redirects=False)
     assert redirect.status_code == 307
     assert redirect.headers["location"] == "https://example.com/home"
+
+
+def test_social_bot_gets_og_preview_not_redirect(client, user_id):
+    created = client.post(
+        "/api/links",
+        json={"original_url": "https://example.com/article", "user_id": user_id},
+    ).json()
+    code = created["short_code"]
+
+    # A scraper User-Agent should get HTML 200 with OG tags, not a redirect.
+    res = client.get(
+        f"/{code}",
+        headers={"User-Agent": "WhatsApp/2.23 facebookexternalhit/1.1"},
+        follow_redirects=False,
+    )
+    assert res.status_code == 200
+    assert "text/html" in res.headers["content-type"]
+    assert 'property="og:title"' in res.text
+    assert 'name="twitter:card"' in res.text
+    assert "Syed Sulaiman Usman" in res.text
+    assert "https://example.com/article" in res.text
+
+    # And the bot hit must NOT be counted as a click.
+    analytics = client.get(f"/api/analytics/{code}").json()
+    assert analytics["total_clicks"] == 0
+
+
+def test_normal_browser_still_redirects(client, user_id):
+    created = client.post(
+        "/api/links",
+        json={"original_url": "https://example.com/page2", "user_id": user_id},
+    ).json()
+    code = created["short_code"]
+
+    res = client.get(
+        f"/{code}",
+        headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"},
+        follow_redirects=False,
+    )
+    assert res.status_code == 307
+    assert res.headers["location"] == "https://example.com/page2"
