@@ -37,6 +37,18 @@ class DateCount(BaseModel):
     count: int
 
 
+# ---- Clicks from a device type ----
+class DeviceCount(BaseModel):
+    device_type: str | None
+    count: int
+
+
+# ---- Clicks from a country ----
+class CountryCount(BaseModel):
+    country: str | None
+    count: int
+
+
 # ---- Output: the full analytics summary for one link ----
 class AnalyticsSummary(BaseModel):
     short_code: str
@@ -46,5 +58,7 @@ class AnalyticsSummary(BaseModel):
     clicks_today: int
     top_referrers: list[ReferrerCount]
     clicks_by_date: list[DateCount]
+    clicks_by_device: list[DeviceCount]
+    clicks_by_country: list[CountryCount]
 
     model_config = ConfigDict(from_attributes=True)

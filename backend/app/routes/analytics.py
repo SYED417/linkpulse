@@ -6,7 +6,13 @@ from sqlalchemy.orm import Session
 
 from app.db.database import get_db
 from app.models import Link, Click
-from app.schemas.link import AnalyticsSummary, ReferrerCount, DateCount
+from app.schemas.link import (
+    AnalyticsSummary,
+    ReferrerCount,
+    DateCount,
+    DeviceCount,
+    CountryCount,
+)
 
 router = APIRouter(prefix="/api", tags=["analytics"])
 
@@ -66,7 +72,31 @@ def get_analytics(short_code: str, db: Session = Depends(get_db)):
     )
     clicks_by_date = [DateCount(date=row.day, count=row.count) for row in date_rows]
 
-    # 6. Assemble the response. FastAPI shapes it via AnalyticsSummary.
+    # 6. clicks_by_device: group by device type.
+    device_rows = (
+        db.query(Click.device_type, func.count(Click.id).label("count"))
+        .filter(Click.link_id == link.id)
+        .group_by(Click.device_type)
+        .order_by(func.count(Click.id).desc())
+        .all()
+    )
+    clicks_by_device = [
+        DeviceCount(device_type=r.device_type, count=r.count) for r in device_rows
+    ]
+
+    # 7. clicks_by_country: group by country.
+    country_rows = (
+        db.query(Click.country, func.count(Click.id).label("count"))
+        .filter(Click.link_id == link.id)
+        .group_by(Click.country)
+        .order_by(func.count(Click.id).desc())
+        .all()
+    )
+    clicks_by_country = [
+        CountryCount(country=r.country, count=r.count) for r in country_rows
+    ]
+
+    # 8. Assemble the response. FastAPI shapes it via AnalyticsSummary.
     return AnalyticsSummary(
         short_code=link.short_code,
         original_url=link.original_url,
@@ -75,4 +105,6 @@ def get_analytics(short_code: str, db: Session = Depends(get_db)):
         clicks_today=clicks_today,
         top_referrers=top_referrers,
         clicks_by_date=clicks_by_date,
+        clicks_by_device=clicks_by_device,
+        clicks_by_country=clicks_by_country,
     )
