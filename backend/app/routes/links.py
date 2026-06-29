@@ -46,20 +46,39 @@ def create_link(payload: LinkCreate, db: Session = Depends(get_db)):
             detail="User not found",
         )
 
-    # 2. Generate a guaranteed-unique short code.
+    # 2. If a custom slug was requested, make sure it isn't already taken
+    #    by another link's slug OR short_code (both share the URL namespace).
+    custom_slug = payload.custom_slug  # already sanitized/validated by Pydantic
+    if custom_slug is not None:
+        taken = (
+            db.query(Link.id)
+            .filter(
+                (Link.custom_slug == custom_slug) | (Link.short_code == custom_slug)
+            )
+            .first()
+        )
+        if taken is not None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Slug already taken.",
+            )
+
+    # 3. Always generate a random short_code (kept even when a slug is set,
+    #    so the column stays populated and links remain addressable both ways).
     short_code = generate_short_code(db)
 
-    # 3. Build the new Link row. (id, created_at, is_active fill in by default.)
+    # 4. Build the new Link row. (id, created_at, is_active fill in by default.)
     new_link = Link(
         user_id=payload.user_id,
         original_url=str(payload.original_url),
         short_code=short_code,
+        custom_slug=custom_slug,
     )
 
-    # 4. Save it: stage -> commit -> refresh to pull DB-generated values back.
+    # 5. Save it: stage -> commit -> refresh to pull DB-generated values back.
     db.add(new_link)
     db.commit()
     db.refresh(new_link)
 
-    # 5. FastAPI converts this object into JSON shaped like LinkResponse.
+    # 6. FastAPI converts this object into JSON shaped like LinkResponse.
     return new_link

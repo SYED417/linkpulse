@@ -22,6 +22,9 @@ class Link(Base):
     )
     original_url = Column(Text, nullable=False)
     short_code = Column(String(20), unique=True, nullable=False)
+    # Optional user-chosen slug. Unique (which also creates an index for the
+    # fast lookups every redirect performs). index=True is explicit for clarity.
+    custom_slug = Column(String(50), unique=True, nullable=True, index=True)
     created_at = Column(
         DateTime(timezone=True),
         nullable=False,

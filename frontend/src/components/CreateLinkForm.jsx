@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { createLink } from '../api'
+import { createLink, SHORT_URL_BASE } from '../api'
 
 // Form to create a new short link. Calls onCreated() so the parent
 // can refresh the table after a successful create.
 export default function CreateLinkForm({ user, onCreated }) {
   const [url, setUrl] = useState('')
+  const [slug, setSlug] = useState('')
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
 
@@ -26,9 +27,11 @@ export default function CreateLinkForm({ user, onCreated }) {
     setBusy(true)
     setMsg('')
     try {
-      const link = await createLink(normalized, user.id)
-      setMsg(`Created /${link.short_code}`)
+      const link = await createLink(normalized, user.id, slug)
+      const code = link.custom_slug || link.short_code
+      setMsg(`Created: ${SHORT_URL_BASE}/${code}`)
       setUrl('')
+      setSlug('')
       onCreated()
     } catch (err) {
       setMsg(`Error: ${err.message}`)
@@ -40,16 +43,26 @@ export default function CreateLinkForm({ user, onCreated }) {
   return (
     <section className="card">
       <h2>Create a short link</h2>
-      <form onSubmit={handleSubmit} className="form-row">
-        <input
-          type="text"
-          placeholder="example.com/page  (https:// added automatically)"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-        />
-        <button type="submit" disabled={busy || !user}>
-          {busy ? 'Creating…' : 'Shorten'}
-        </button>
+      <form onSubmit={handleSubmit}>
+        <div className="form-row">
+          <input
+            type="text"
+            placeholder="example.com/page  (https:// added automatically)"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+          />
+        </div>
+        <div className="form-row" style={{ marginTop: '10px' }}>
+          <input
+            type="text"
+            placeholder="custom slug (optional, e.g. my-link)"
+            value={slug}
+            onChange={(e) => setSlug(e.target.value)}
+          />
+          <button type="submit" disabled={busy || !user}>
+            {busy ? 'Creating…' : 'Shorten'}
+          </button>
+        </div>
       </form>
       {msg && <p className="msg">{msg}</p>}
     </section>

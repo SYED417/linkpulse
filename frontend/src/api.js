@@ -19,16 +19,20 @@ export async function getLinks() {
   return res.json()
 }
 
-// Create a short link.
-export async function createLink(originalUrl, userId) {
+// Create a short link. customSlug is optional.
+export async function createLink(originalUrl, userId, customSlug) {
+  const payload = { original_url: originalUrl, user_id: userId }
+  if (customSlug && customSlug.trim()) {
+    payload.custom_slug = customSlug.trim()
+  }
   const res = await fetch(`${BASE_URL}/api/links`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ original_url: originalUrl, user_id: userId }),
+    body: JSON.stringify(payload),
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
-    const detail = err.detail ? JSON.stringify(err.detail) : 'Failed to create link'
+    const detail = err.detail ? (typeof err.detail === 'string' ? err.detail : JSON.stringify(err.detail)) : 'Failed to create link'
     throw new Error(detail)
   }
   return res.json()

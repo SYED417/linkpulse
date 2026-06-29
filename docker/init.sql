@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS links (
     user_id      UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     original_url TEXT NOT NULL,
     short_code   VARCHAR(20) UNIQUE NOT NULL,
+    custom_slug  VARCHAR(50) UNIQUE,
     created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
     is_active    BOOLEAN NOT NULL DEFAULT TRUE
 );
@@ -33,6 +34,7 @@ CREATE TABLE IF NOT EXISTS clicks (
 -- Helpful indexes for common lookups
 CREATE INDEX IF NOT EXISTS idx_links_user_id ON links(user_id);
 CREATE INDEX IF NOT EXISTS idx_clicks_link_id ON clicks(link_id);
+CREATE INDEX IF NOT EXISTS idx_links_custom_slug ON links(custom_slug);
 
 -- A seed user so you can create links immediately after startup.
 INSERT INTO users (email, password_hash)

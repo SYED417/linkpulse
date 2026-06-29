@@ -80,8 +80,12 @@ def redirect_to_original(
     request: Request,
     db: Session = Depends(get_db),
 ):
-    # 1. Look up the link by its short_code.
-    link = db.query(Link).filter(Link.short_code == short_code).first()
+    # 1. Look up the link by its short_code OR its custom_slug.
+    link = (
+        db.query(Link)
+        .filter((Link.short_code == short_code) | (Link.custom_slug == short_code))
+        .first()
+    )
 
     # 2. Not found (or disabled) -> 404.
     if link is None or not link.is_active:
