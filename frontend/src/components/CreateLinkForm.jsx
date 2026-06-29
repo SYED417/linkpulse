@@ -14,10 +14,19 @@ export default function CreateLinkForm({ user, onCreated }) {
       setMsg('No user loaded yet.')
       return
     }
+    // Normalize: if the user didn't type a scheme, assume https://
+    let normalized = url.trim()
+    if (!normalized) {
+      setMsg('Please enter a URL.')
+      return
+    }
+    if (!/^https?:\/\//i.test(normalized)) {
+      normalized = 'https://' + normalized
+    }
     setBusy(true)
     setMsg('')
     try {
-      const link = await createLink(url, user.id)
+      const link = await createLink(normalized, user.id)
       setMsg(`Created /${link.short_code}`)
       setUrl('')
       onCreated()
@@ -33,11 +42,10 @@ export default function CreateLinkForm({ user, onCreated }) {
       <h2>Create a short link</h2>
       <form onSubmit={handleSubmit} className="form-row">
         <input
-          type="url"
-          placeholder="https://example.com/some/long/url"
+          type="text"
+          placeholder="example.com/page  (https:// added automatically)"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
-          required
         />
         <button type="submit" disabled={busy || !user}>
           {busy ? 'Creating…' : 'Shorten'}
