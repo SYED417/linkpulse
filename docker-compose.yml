@@ -1,0 +1,41 @@
+services:
+  # ---------- PostgreSQL database ----------
+  db:
+    image: postgres:17
+    container_name: linkpulse-db
+    environment:
+      POSTGRES_DB: linkpulse
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      # host 5433 -> container 5432, to avoid clashing with the
+      # PostgreSQL you already installed locally on 5432.
+      - "5433:5432"
+    volumes:
+      # Named volume: keeps the data even if the container is removed.
+      - pgdata:/var/lib/postgresql/data
+      # Mount the schema so it runs on first startup (read-only).
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      # The backend waits until this reports the DB is ready.
+      test: ["CMD-SHELL", "pg_isready -U postgres -d linkpulse"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ---------- FastAPI backend ----------
+  backend:
+    build: ./backend          # build using backend/Dockerfile
+    container_name: linkpulse-backend
+    environment:
+      # NOTE: host is "db" (the service name), NOT localhost.
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/linkpulse
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy   # start only after DB is healthy
+
+# Declares the named volume used above.
+volumes:
+  pgdata:

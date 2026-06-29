@@ -1,0 +1,28 @@
+# ---- Secrets & state (NEVER commit) ----
+**/.env
+**/*.tfstate
+**/*.tfstate.*
+**/.terraform/
+**/*.tfvars
+**/*.tfvars.json
+
+# ---- Python ----
+**/venv/
+**/__pycache__/
+*.pyc
+
+# ---- Node / frontend ----
+**/node_modules/
+**/dist/
+**/.vite/
+
+# ---- Build / scratch logs ----
+*.log
+cf_root.html
+headers.txt
+
+# ---- OS / editor ----
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
