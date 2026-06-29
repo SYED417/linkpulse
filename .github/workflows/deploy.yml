@@ -12,9 +12,44 @@ env:
 
 jobs:
   # ---------------------------------------------------------------------
+  # Test gate: run the backend test suite against a real PostgreSQL.
+  # Both deploy jobs depend on this passing.
+  # ---------------------------------------------------------------------
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: linkpulse_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/linkpulse_test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies and run tests
+        working-directory: ./backend
+        run: |
+          pip install -r requirements-dev.txt
+          pytest -q
+
+  # ---------------------------------------------------------------------
   # Backend: build the image, push to ECR, then tell EC2 to redeploy.
   # ---------------------------------------------------------------------
   deploy-backend:
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - name: Check out the code
@@ -62,6 +97,7 @@ jobs:
   # Frontend: build the React app, upload to S3, invalidate CloudFront.
   # ---------------------------------------------------------------------
   deploy-frontend:
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - name: Check out the code

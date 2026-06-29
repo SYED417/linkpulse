@@ -1,12 +1,24 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
+import ipaddress
 
 from app.db.database import get_db
 from app.models import Link, Click
 
 # No prefix: these are public short URLs served from the root, e.g. /pbRjaM
 router = APIRouter(tags=["redirect"])
+
+
+def _safe_ip(host: str | None) -> str | None:
+    """Return host only if it's a valid IP address, else None.
+    Guards the INET column against non-IP values (proxies, test clients)."""
+    if not host:
+        return None
+    try:
+        return str(ipaddress.ip_address(host))
+    except ValueError:
+        return None
 
 
 @router.get("/{short_code}")
@@ -28,7 +40,7 @@ def redirect_to_original(
     # 3. Record the click BEFORE redirecting so analytics never miss a hit.
     click = Click(
         link_id=link.id,
-        ip_address=request.client.host if request.client else None,
+        ip_address=_safe_ip(request.client.host if request.client else None),
         referrer=request.headers.get("referer"),
         # country and device_type stay NULL for now.
     )
